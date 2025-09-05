@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anganwadi Growth Calculator</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #87ceeb, #b0e0e6); /* Sky Blue */
+      color: #000; 
+      display: flex; justify-content: center;
+      align-items: center; min-height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px; border-radius: 20px;
+      width: 90%; max-width: 400px; text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    h1 { margin-bottom: 15px; color: #333; }
+    label { display: block; margin: 10px 0 5px; color: #333; }
+    input, select {
+      width: 90%; padding: 10px; margin-bottom: 10px;
+      border: 1px solid #ccc; border-radius: 10px; font-size: 1em;
+    }
+    button {
+      width: 95%; padding: 10px; font-size: 1em;
+      border: 2px solid #00bfff; background: #00bfff; color: #fff;
+      border-radius: 30px; cursor: pointer; transition: 0.3s;
+    }
+    button:hover { background: #fff; color: #00bfff; transform: scale(1.05); }
+    .lang-btn {
+      margin: 5px; padding: 5px; font-size: 0.9em;
+      background: #00bfff; border: none; color: #fff; border-radius: 10px;
+      cursor: pointer; transition: 0.3s;
+    }
+    .lang-btn:hover { background: #fff; color: #00bfff; transform: scale(1.05); }
+    .result {
+      margin-top: 15px; padding: 15px; border-radius: 10px;
+      background: #e6f7ff; font-size: 1.1em; color: #000;
+    }
+    .credit {
+      margin-top: 20px; font-size: 0.85em; color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="title">Anganwadi Growth Calculator</h1>
+
+    <div>
+      <button class="lang-btn" onclick="setLanguage('en')">English</button>
+      <button class="lang-btn" onclick="setLanguage('hi')">हिंदी</button>
+    </div>
+
+    <label id="dobLabel">Date of Birth (Optional)</label>
+    <input type="date" id="dob">
+
+    <label id="ageLabel">OR Enter Age</label>
+    <select id="years"></select>
+    <select id="months"></select>
+
+    <label id="genderLabel">Gender</label>
+    <select id="gender">
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+
+    <button onclick="calculate()" id="calcBtn">Calculate</button>
+    <div class="result" id="result">Result will appear here...</div>
+
+    <div class="credit">Developed by <b>Badal Sarkar Official</b></div>
+  </div>
+
+  <script>
+    // Populate Age Dropdown (0 to 5 years)
+    const yearsSel = document.getElementById("years");
+    const monthsSel = document.getElementById("months");
+    for(let y=0; y<=5; y++){
+      const opt = document.createElement("option");
+      opt.value = y; opt.textContent = `${y} Years`;
+      yearsSel.appendChild(opt);
+    }
+    for(let m=0; m<12; m++){
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = `${m} Months`;
+      monthsSel.appendChild(opt);
+    }
+
+    // Chart Data (0 to 60 months only)
+    const growthData = {
+      male: [
+        {m:0, w:3.3, h:49.9}, {m:3, w:6.4, h:61.4}, {m:6, w:7.8, h:67.8},
+        {m:9, w:8.5, h:72.0}, {m:12, w:9.6, h:75.7}, {m:15, w:10.3, h:79.1},
+        {m:18, w:10.9, h:82.3}, {m:21, w:11.5, h:85.1}, {m:24, w:12.2, h:87.8},
+        {m:27, w:12.7, h:89.4}, {m:30, w:13.3, h:91.9}, {m:33, w:13.8, h:94.1},
+        {m:36, w:14.3, h:96.1}, {m:39, w:14.8, h:98.0}, {m:42, w:15.3, h:99.9},
+        {m:45, w:15.8, h:101.6}, {m:48, w:16.3, h:103.3}, {m:51, w:16.8, h:105.0},
+        {m:54, w:17.3, h:106.7}, {m:57, w:17.8, h:108.3}, {m:60, w:18.3, h:110.0}
+      ],
+      female: [
+        {m:0, w:3.2, h:49.1}, {m:3, w:5.8, h:60.3}, {m:6, w:7.3, h:65.7},
+        {m:9, w:8.2, h:70.1}, {m:12, w:8.9, h:74.0}, {m:15, w:9.3, h:77.5},
+        {m:18, w:10.2, h:80.7}, {m:21, w:10.8, h:83.7}, {m:24, w:11.5, h:86.4},
+        {m:27, w:12.1, h:88.3}, {m:30, w:12.7, h:90.7}, {m:33, w:13.4, h:92.9},
+        {m:36, w:13.9, h:95.1}, {m:39, w:14.4, h:97.1}, {m:42, w:15.0, h:99.0},
+        {m:45, w:15.5, h:100.9}, {m:48, w:16.1, h:102.7}, {m:51, w:16.6, h:104.5},
+        {m:54, w:17.2, h:106.2}, {m:57, w:17.7, h:107.4}, {m:60, w:18.2, h:109.4}
+      ]
+    };
+
+    function interpolate(data, months) {
+      for (let i = 0; i < data.length-1; i++) {
+        if (months === data[i].m) return {w:data[i].w, h:data[i].h};
+        if (months > data[i].m && months < data[i+1].m) {
+          let ratio = (months - data[i].m) / (data[i+1].m - data[i].m);
+          let w = data[i].w + ratio*(data[i+1].w - data[i].w);
+          let h = data[i].h + ratio*(data[i+1].h - data[i].h);
+          return {w,h};
+        }
+      }
+      return data[data.length-1]; 
+    }
+
+    function calculate() {
+      let dob = document.getElementById("dob").value;
+      let totalMonths = 0;
+      if(dob){
+        const birthDate = new Date(dob);
+        const today = new Date();
+        totalMonths = (today.getFullYear()-birthDate.getFullYear())*12 + (today.getMonth()-birthDate.getMonth());
+        if(today.getDate() < birthDate.getDate()) totalMonths--;
+      } else {
+        totalMonths = parseInt(yearsSel.value)*12 + parseInt(monthsSel.value);
+      }
+      
+      if (totalMonths > 60) {
+        document.getElementById("result").innerHTML = 
+          `<b style="color:red;">This tool is only for 0-5 years (0-60 months).</b>`;
+        return;
+      }
+
+      const gender = document.getElementById("gender").value;
+      const data = interpolate(growthData[gender], totalMonths);
+      const ageText = `${Math.floor(totalMonths/12)} Years ${totalMonths%12} Months`;
+      document.getElementById("result").innerHTML = 
+        `<b>${texts.resultAge}:</b> ${ageText}<br>
+         <b>${texts.resultHeight}:</b> ${data.h.toFixed(1)} cm<br>
+         <b>${texts.resultWeight}:</b> ${data.w.toFixed(1)} kg`;
+    }
+
+    const textsEN = {
+      title:"Anganwadi Growth Calculator",
+      dob:"Date of Birth (Optional)",
+      age:"OR Enter Age",
+      gender:"Gender", male:"Male", female:"Female",
+      calc:"Calculate", resultAge:"Age", resultHeight:"Ideal Height", resultWeight:"Ideal Weight"
+    };
+    const textsHI = {
+      title:"आंगनवाड़ी वृद्धि कैलकुलेटर",
+      dob:"जन्मतिथि (वैकल्पिक)",
+      age:"या उम्र डालें",
+      gender:"लिंग", male:"लड़का", female:"लड़की",
+      calc:"गणना करें", resultAge:"उम्र", resultHeight:"आदर्श लंबाई", resultWeight:"आदर्श वजन"
+    };
+    let texts = textsEN;
+    function setLanguage(lang){
+      texts = lang==='hi'?textsHI:textsEN;
+      document.getElementById("title").innerText = texts.title;
+      document.getElementById("dobLabel").innerText = texts.dob;
+      document.getElementById("ageLabel").innerText = texts.age;
+      document.getElementById("genderLabel").innerText = texts.gender;
+      document.getElementById("gender").options[0].text = texts.male;
+      document.getElementById("gender").options[1].text = texts.female;
+      document.getElementById("calcBtn").innerText = texts.calc;
+    }
+  </script>
+</body>
+</html>
